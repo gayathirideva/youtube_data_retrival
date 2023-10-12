@@ -9,15 +9,8 @@ from streamlit_option_menu import option_menu
 from PIL import Image
 import plotly.express as px
 
-#push_to_mysql = False
-#global push_to_mysql
-
-#api_key ="AIzaSyDI3TKadEMd2ewZd2J8wUQisbMPVc8iJJI"  #OCT 07 2023 Never used but still getting quto exceeeded
-    #api_key = "AIzaSyDxDq4OHLz7vqqM3-LfW3Ilzanq-fKlHMc" # Oct 07 2023
-    #api_key = "AIzaSyA3jJEAPiSKuocsZTdqtEWQjXCXc7sBfvA" #jazzoria_id 
-api_key = "AIzaSyAju57hvhz5T42vtpwUoVkpFuwbVlzRhyM" #mr.gsanthosh
-    #AIzaSyAju57hvhz5T42vtpwUoVkpFuwbVlzRhyM
-    #api_key = "AIzaSyBlugsdjEdym36NqTI2dzlEntwKoJFbuYc"
+api_key = "AIzaSyAju57hvhz5T42vtpwUoVkpFuwbVlzRhyM" 
+#api_key = "AIzaSyBlugsdjEdym36NqTI2dzlEntwKoJFbuYc"
 youtube = googleapiclient.discovery.build("youtube","v3", developerKey = api_key)
 
 # Define MongoDB and MySQL connection details
@@ -37,7 +30,7 @@ mycursor = mysql_connect.cursor()
 # Create a Streamlit app title
 st.title("YouTube Data Retrieval")
 
-# Add a text input box for channel name
+#Input box for channel name
 channel_name = st.text_input("Enter Channel Name")
 
 # Create a button to retrieve and push data
@@ -64,8 +57,7 @@ def sql_connect(sqlData) : #mysql_connect,
   doc_push = None
   for doc in result:
      doc_push = doc
-   # doc_result = doc
-   # doc_push.append(doc_result)
+      
 # Establish a MySQL connection
   mycursor = mysql_connect.cursor(buffered=True)
   print("chn after mycursor")
@@ -108,31 +100,19 @@ def sql_connect(sqlData) : #mysql_connect,
   mycursor.close()   
    
   # Extract playlist information
- 
   # Iterate over playlists
   get_playlist_det = doc_push["playlist_id"] #doc_result
-#  print(get_playlist_det)
-  print("Inside the Playlist")
   channel_id = get_playlist_det['channel_id']
   playlist_id = get_playlist_det['playlist_id']
   playlist_names = get_playlist_det['playlist_name']
-  #mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255),channel_id VARCHAR(255), playlist_name Text , PRIMARY KEY(playlist_id),FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
- # print(channel_id)
- # print(playlist_id)
- # print(playlist_names)
   mycursor = mysql_connect.cursor(buffered=True)
   mycursor.execute("SHOW TABLES LIKE 'playlist12'") # LIKE channel mycursor.execute("SHOW TABLES LIKE 'channel12'")
-  print("plytb before try")
   table_exist = mycursor.fetchmany()
   try :
     if not table_exist:
       mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255),channel_id VARCHAR(255), playlist_name Text , FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
-      #UNIQUE KEY (playlist_id, channel_id)
-      #mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255),channel_id VARCHAR(255), playlist_name Text , UNIQUE KEY(playlist_id,channel_id),FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
     # Iterate through the list of playlist names and insert each one
       for i in range(len(playlist_names)):
-     #print(playlist_names[i])
-     #print(channel_id,playlist_id,playlist_names[i])
           mycursor.execute(
             "INSERT INTO playlist12 (playlist_id, channel_id, playlist_name) "
             "VALUES (%s, %s, %s)",
@@ -141,8 +121,6 @@ def sql_connect(sqlData) : #mysql_connect,
     else :
       print("inside else playlist")
       for i in range(len(playlist_names)):
-     #print(playlist_names[i])
-     #print(channel_id,playlist_id,playlist_names[i])
           mycursor.execute(
             "INSERT INTO playlist12 (playlist_id, channel_id, playlist_name) "
             "VALUES (%s, %s, %s)",
@@ -160,13 +138,11 @@ def sql_connect(sqlData) : #mysql_connect,
 def video_call(x):
 # Details of the Video 
   print(x)
-  #mycursor = mysql_connect.cursor(buffered=True)
   #mycursor.execute("SHOW TABLES LIKE 'playlist12'") # LIKE channel mycursor.execute("SHOW TABLES LIKE 'channel12'")
   print(" before try")
   #table_exist = mycursor.fetchmany()
   videos = x['video_id']
   print(videos)
- # print ("videos :",videos)
   print("Inside video TAB")
   for video in videos:
         # Extract video information
@@ -221,14 +197,11 @@ def push_to_mongodb(details):
   try:
     global mylist
     mylist = details
-        #youtube_collection.create_index([("channel_id.channel_name", pymongo.ASCENDING)], unique=True)
     existing_channel = youtube_collection.find_one({"channel_id.channel_id": mylist["channel_id"]["channel_id"]})
     if existing_channel:
         print("Error: Channel with the same channel_id already exists.")
     else:
        print("Pinged your deployment. You successfully connected to MongoDB!")
-      #client.collection.insert_one(mylist)
-      #sql_connect(table_data)
   except Exception as e:
       print("Error :", e)
   
@@ -239,10 +212,8 @@ def push_to_mongodb(details):
   df_channel = pd.DataFrame([channel_table])
   st.dataframe(df_channel)
   sql_connect(mylist)
-  #push_to_mysql = st.button("MySQL")
    
        
-
 def channelgetId(channel_name):
     request = youtube.search().list(q=channel_name, type= 'channel', part = 'id', maxResults=1)
     response =request.execute()
@@ -256,15 +227,14 @@ def channelgetId(channel_name):
     )
     channel_overview = response.execute()
     channel_flat = flatten(channel_overview)
-    #print(channel_flat)
     global channel_table
     #print("\n")
-    channel_id = channel_flat['items_0_id']    #channel[items_0_id]
-    channel_name = channel_flat['items_0_snippet_title']       #channel_overview['items'][0]['snippet']['title']
+    channel_id = channel_flat['items_0_id']   
+    channel_name = channel_flat['items_0_snippet_title']    
     #channel_type =channel_id_2['items'][0]['status']['madeForKids']
-    channel_views = channel_flat['items_0_statistics_viewCount']   #channel_overview['items'][0]['statistics']['viewCount']
-    channel_des = channel_flat['items_0_snippet_description']      #channel_overview['items'][0]['snippet']['description']
-    channel_status = channel_flat['items_0_status_privacyStatus']  #channel_overview['items'][0]['status']['privacyStatus']#['status']['privacystatus'] #
+    channel_views = channel_flat['items_0_statistics_viewCount'] 
+    channel_des = channel_flat['items_0_snippet_description']     
+    channel_status = channel_flat['items_0_status_privacyStatus']  
     channel_table = {
         'channel_id' : channel_id,
         'channel_name':channel_name,
@@ -277,35 +247,24 @@ def channelgetId(channel_name):
 
 
 def playlist_tabledb(y):
-    #y=channel_flat
     passChan_id = y
     #print("\n")
     channel_id = passChan_id['items_0_id']
-    #print('channel_id :',channel_id)
-    #print("\n")
     response = youtube.channels().list(
         id = channel_id,
         part = 'snippet,status,statistics,contentDetails' #localizations'
     )
     channel_playlist = flatten(response.execute())
-    # 'items_0_id': 'UCiEmtpFVJjpvdhsQ2QAhxVA'
-   # print("\n")
-    playid = channel_playlist['items_0_contentDetails_relatedPlaylists_uploads'] #UUbCmjCuTUZos6Inko4u57UQ
-    #print('playlist_id :',playid) #playlist_id)
-    #print("\n")
+    playid = channel_playlist['items_0_contentDetails_relatedPlaylists_uploads'] 
     request = youtube.playlists().list( #playlistsItems
         part = "id,contentDetails,localizations,player,snippet",
-        #"contentDetails,id,snippet,localization,player", #id,contentDetails,localizations,player,snippet
         channelId = channel_id,
-        # playlistId = playid, #playlistId wont come under playlists
         maxResults = 50
         #nextPageToken
         #prevPageToken
     )
     response = request.execute()
-   # print(response)
     total = response['pageInfo']['totalResults']
-   # print(total)
     title = []
     global playlist_table
     play_id = []
@@ -320,7 +279,6 @@ def playlist_tabledb(y):
         'playlist_name': title
     }
     play_flat = flatten(playlist_table)
-    #UCiEmtpFVJjpvdhsQ2QAhxVA guvi
     video_tabledata(passChan_id, play_flat)
     #get only the multiple playlist_id of the channel
 
@@ -334,21 +292,21 @@ def video_tabledata(z,c):
         maxResults = 50
     )
     videodeets = request.execute()
-    #print(flatten(videodeets))
-    # After gettting the video ID for the channel playlist ,using videos() to get the info. related to the videos. And iterate them thro for loop.
+   
+    # After gettting the video ID for the channel playlist ,using videos() to get the info. 
+    #related to the videos. And iterate them thro for loop.
 
     vidId =[]
     for i in range(videodeets['pageInfo']['resultsPerPage']):
-        vidId.append(videodeets['items'][i]['contentDetails']['videoId']) #items_2_contentDetails_videoId
+        vidId.append(videodeets['items'][i]['contentDetails']['videoId'])
 
-    #sampleVid =['4MPneA3QHsE', 'TMhrSf6RjhY']
+   
     global total_video
     total_video = []
-    for x in range(len(vidId)): #vidId  #use sampleVid to check the results
-        #
+    for x in range(len(vidId)):
         videoReq = youtube.videos().list(
             part = "contentDetails,id,localizations,player,recordingDetails, snippet, statistics,status,topicDetails",
-            id = vidId[x]  # "DEIDOw_sFI4"
+            id = vidId[x]  
 
         )
      
@@ -374,12 +332,9 @@ def video_tabledata(z,c):
                 video_comments(vidId[x])
             ]
             }
-        #print("video_deed :",video_deed)
         total_video.append(video_deed)
-   # print(total_video)
-    #video_comments(total_video,vidId)
 
-def video_comments(a): # q,r
+def video_comments(a): 
     videoNo = a
     #print('videoNo:',videoNo)
     for x in range(len(videoNo)):
