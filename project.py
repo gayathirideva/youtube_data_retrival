@@ -9,8 +9,15 @@ from streamlit_option_menu import option_menu
 from PIL import Image
 import plotly.express as px
 
-api_key = "AIzaSyAju57hvhz5T42vtpwUoVkpFuwbVlzRhyM" 
-#api_key = "AIzaSyBlugsdjEdym36NqTI2dzlEntwKoJFbuYc"
+#push_to_mysql = False
+#global push_to_mysql
+
+#api_key ="AIzaSyDI3TKadEMd2ewZd2J8wUQisbMPVc8iJJI"  #OCT 12 2023 
+api_key = "AIzaSyDxDq4OHLz7vqqM3-LfW3Ilzanq-fKlHMc" # Oct 07 2023
+    #api_key = "AIzaSyA3jJEAPiSKuocsZTdqtEWQjXCXc7sBfvA" #jazzoria_id  oct 12 2023
+#api_key = "AIzaSyAju57hvhz5T42vtpwUoVkpFuwbVlzRhyM" #mr.gsanthosh
+    #AIzaSyAju57hvhz5T42vtpwUoVkpFuwbVlzRhyM
+    #api_key = "AIzaSyBlugsdjEdym36NqTI2dzlEntwKoJFbuYc"
 youtube = googleapiclient.discovery.build("youtube","v3", developerKey = api_key)
 
 # Define MongoDB and MySQL connection details
@@ -30,7 +37,7 @@ mycursor = mysql_connect.cursor()
 # Create a Streamlit app title
 st.title("YouTube Data Retrieval")
 
-#Input box for channel name
+# Add a text input box for channel name
 channel_name = st.text_input("Enter Channel Name")
 
 # Create a button to retrieve and push data
@@ -38,7 +45,7 @@ push_button = st.button("Get Details and Collect Data")
 #enable_push_to_mysql = False
 #push_to_mysql = st.button("MySQL")
 
-questions =  ["1. What are the names of all the videos and their corresponding channels?",
+questions =  ["Select the question","1. What are the names of all the videos and their corresponding channels?",
     "2. Which channels have the most number of videos, and how many videos do they have?",
     "3. What are the top 10 most viewed videos and their respective channels?",
     "4. How many comments were made on each video, and what are their corresponding video names?",
@@ -57,7 +64,8 @@ def sql_connect(sqlData) : #mysql_connect,
   doc_push = None
   for doc in result:
      doc_push = doc
-      
+   # doc_result = doc
+   # doc_push.append(doc_result)
 # Establish a MySQL connection
   mycursor = mysql_connect.cursor(buffered=True)
   print("chn after mycursor")
@@ -100,31 +108,53 @@ def sql_connect(sqlData) : #mysql_connect,
   mycursor.close()   
    
   # Extract playlist information
+ 
   # Iterate over playlists
   get_playlist_det = doc_push["playlist_id"] #doc_result
+#  print(get_playlist_det)
+  print("Inside the Playlist")
   channel_id = get_playlist_det['channel_id']
   playlist_id = get_playlist_det['playlist_id']
   playlist_names = get_playlist_det['playlist_name']
+  #mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255),channel_id VARCHAR(255), playlist_name Text , PRIMARY KEY(playlist_id),FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
+ # print(channel_id)
+ # print(playlist_id)
+ # print(playlist_names)
   mycursor = mysql_connect.cursor(buffered=True)
   mycursor.execute("SHOW TABLES LIKE 'playlist12'") # LIKE channel mycursor.execute("SHOW TABLES LIKE 'channel12'")
+  print("plytb before try")
   table_exist = mycursor.fetchmany()
   try :
     if not table_exist:
-      mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255),channel_id VARCHAR(255), playlist_name Text , FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
+      mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255),channel_id VARCHAR(255), playlist_name Text , INDEX(playlist_id) FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
+      #UNIQUE KEY (playlist_id, channel_id)
+      # Create the playlist12 table with an index on playlist_id
+      # mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255), channel_id VARCHAR(255), playlist_name TEXT, INDEX(playlist_id), FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
+
+      #mycursor.execute("CREATE TABLE IF NOT EXISTS playlist12 (playlist_id VARCHAR(255),channel_id VARCHAR(255), playlist_name Text , UNIQUE KEY(playlist_id,channel_id),FOREIGN KEY(channel_id) REFERENCES channel12(channel_id))")
     # Iterate through the list of playlist names and insert each one
-      for i in range(len(playlist_names)):
-          mycursor.execute(
+      #for i in range(len(playlist_names)):
+    for playname in playlist_names:
+     #print(playlist_names[i])
+       # print(channel_id,playlist_id,playlist_names[i])
+        print(channel_id,playlist_id,playname)
+        mycursor.execute(
             "INSERT INTO playlist12 (playlist_id, channel_id, playlist_name) "
             "VALUES (%s, %s, %s)",
-            (playlist_id, channel_id, playlist_names[i])
+           # (playlist_id, channel_id, playlist_names[i])
+             (playlist_id, channel_id, playname) 
           )
     else :
       print("inside else playlist")
-      for i in range(len(playlist_names)):
+      #for i in range(len(playlist_names)):
+      for playname in playlist_names:
+     #print(playlist_names[i])
+     #print(channel_id,playlist_id,playlist_names[i])
           mycursor.execute(
             "INSERT INTO playlist12 (playlist_id, channel_id, playlist_name) "
             "VALUES (%s, %s, %s)",
-            (playlist_id, channel_id, playlist_names[i])
+            #(playlist_id, channel_id, playlist_names[i])
+            (playlist_id, channel_id, playname)
           )
       print("else :Data saved to playlist TAB")  
   except Exception as e:
@@ -137,12 +167,14 @@ def sql_connect(sqlData) : #mysql_connect,
 
 def video_call(x):
 # Details of the Video 
-  print(x)
+  #print(x)
+  #mycursor = mysql_connect.cursor(buffered=True)
   #mycursor.execute("SHOW TABLES LIKE 'playlist12'") # LIKE channel mycursor.execute("SHOW TABLES LIKE 'channel12'")
   print(" before try")
   #table_exist = mycursor.fetchmany()
   videos = x['video_id']
   print(videos)
+ # print ("videos :",videos)
   print("Inside video TAB")
   for video in videos:
         # Extract video information
@@ -197,11 +229,14 @@ def push_to_mongodb(details):
   try:
     global mylist
     mylist = details
+        #youtube_collection.create_index([("channel_id.channel_name", pymongo.ASCENDING)], unique=True)
     existing_channel = youtube_collection.find_one({"channel_id.channel_id": mylist["channel_id"]["channel_id"]})
     if existing_channel:
         print("Error: Channel with the same channel_id already exists.")
     else:
        print("Pinged your deployment. You successfully connected to MongoDB!")
+      #client.collection.insert_one(mylist)
+      #sql_connect(table_data)
   except Exception as e:
       print("Error :", e)
   
@@ -212,8 +247,10 @@ def push_to_mongodb(details):
   df_channel = pd.DataFrame([channel_table])
   st.dataframe(df_channel)
   sql_connect(mylist)
+  #push_to_mysql = st.button("MySQL")
    
        
+
 def channelgetId(channel_name):
     request = youtube.search().list(q=channel_name, type= 'channel', part = 'id', maxResults=1)
     response =request.execute()
@@ -227,14 +264,15 @@ def channelgetId(channel_name):
     )
     channel_overview = response.execute()
     channel_flat = flatten(channel_overview)
+    #print(channel_flat)
     global channel_table
     #print("\n")
-    channel_id = channel_flat['items_0_id']   
-    channel_name = channel_flat['items_0_snippet_title']    
+    channel_id = channel_flat['items_0_id']    #channel[items_0_id]
+    channel_name = channel_flat['items_0_snippet_title']       #channel_overview['items'][0]['snippet']['title']
     #channel_type =channel_id_2['items'][0]['status']['madeForKids']
-    channel_views = channel_flat['items_0_statistics_viewCount'] 
-    channel_des = channel_flat['items_0_snippet_description']     
-    channel_status = channel_flat['items_0_status_privacyStatus']  
+    channel_views = channel_flat['items_0_statistics_viewCount']   #channel_overview['items'][0]['statistics']['viewCount']
+    channel_des = channel_flat['items_0_snippet_description']      #channel_overview['items'][0]['snippet']['description']
+    channel_status = channel_flat['items_0_status_privacyStatus']  #channel_overview['items'][0]['status']['privacyStatus']#['status']['privacystatus'] #
     channel_table = {
         'channel_id' : channel_id,
         'channel_name':channel_name,
@@ -247,24 +285,35 @@ def channelgetId(channel_name):
 
 
 def playlist_tabledb(y):
+    #y=channel_flat
     passChan_id = y
     #print("\n")
     channel_id = passChan_id['items_0_id']
+    #print('channel_id :',channel_id)
+    #print("\n")
     response = youtube.channels().list(
         id = channel_id,
         part = 'snippet,status,statistics,contentDetails' #localizations'
     )
     channel_playlist = flatten(response.execute())
-    playid = channel_playlist['items_0_contentDetails_relatedPlaylists_uploads'] 
+    # 'items_0_id': 'UCiEmtpFVJjpvdhsQ2QAhxVA'
+   # print("\n")
+    playid = channel_playlist['items_0_contentDetails_relatedPlaylists_uploads'] #UUbCmjCuTUZos6Inko4u57UQ
+    #print('playlist_id :',playid) #playlist_id)
+    #print("\n")
     request = youtube.playlists().list( #playlistsItems
         part = "id,contentDetails,localizations,player,snippet",
+        #"contentDetails,id,snippet,localization,player", #id,contentDetails,localizations,player,snippet
         channelId = channel_id,
+        # playlistId = playid, #playlistId wont come under playlists
         maxResults = 50
         #nextPageToken
         #prevPageToken
     )
     response = request.execute()
+   # print(response)
     total = response['pageInfo']['totalResults']
+   # print(total)
     title = []
     global playlist_table
     play_id = []
@@ -279,6 +328,7 @@ def playlist_tabledb(y):
         'playlist_name': title
     }
     play_flat = flatten(playlist_table)
+    #UCiEmtpFVJjpvdhsQ2QAhxVA guvi
     video_tabledata(passChan_id, play_flat)
     #get only the multiple playlist_id of the channel
 
@@ -292,21 +342,21 @@ def video_tabledata(z,c):
         maxResults = 50
     )
     videodeets = request.execute()
-   
-    # After gettting the video ID for the channel playlist ,using videos() to get the info. 
-    #related to the videos. And iterate them thro for loop.
+    #print(flatten(videodeets))
+    # After gettting the video ID for the channel playlist ,using videos() to get the info. related to the videos. And iterate them thro for loop.
 
     vidId =[]
     for i in range(videodeets['pageInfo']['resultsPerPage']):
-        vidId.append(videodeets['items'][i]['contentDetails']['videoId'])
+        vidId.append(videodeets['items'][i]['contentDetails']['videoId']) #items_2_contentDetails_videoId
 
-   
+    #sampleVid =['4MPneA3QHsE', 'TMhrSf6RjhY']
     global total_video
     total_video = []
-    for x in range(len(vidId)):
+    for x in range(len(vidId)): #vidId  #use sampleVid to check the results
+        #
         videoReq = youtube.videos().list(
             part = "contentDetails,id,localizations,player,recordingDetails, snippet, statistics,status,topicDetails",
-            id = vidId[x]  
+            id = vidId[x]  # "DEIDOw_sFI4"
 
         )
      
@@ -332,9 +382,12 @@ def video_tabledata(z,c):
                 video_comments(vidId[x])
             ]
             }
+        #print("video_deed :",video_deed)
         total_video.append(video_deed)
+   # print(total_video)
+    #video_comments(total_video,vidId)
 
-def video_comments(a): 
+def video_comments(a): # q,r
     videoNo = a
     #print('videoNo:',videoNo)
     for x in range(len(videoNo)):
@@ -371,23 +424,27 @@ if push_button:
 
 
 if selected_question :
-    if selected_question  == "1.What are the names of all the videos and their corresponding channels?" :
-      mycursor.execute("""SELECT v.video_name, c.channel_name
-                          FROM video AS v
-                          JOIN playlist AS p ON v.playlist_id = p.playlist_id
-                          JOIN channel AS c ON p.channel_id = c.channel_id""")
-      df = pd.DataFrame(mycursor.fetchall(),columns=mycursor.column_names)
-      st.write(df)
+    if selected_question == " Select Questions... ":
+       mycursor.execute()
+
+    elif selected_question  == "1.What are the names of all the videos and their corresponding channels?":
+       mycursor.execute(""" SELECT v.video_name, c.channel_name, DENSE_RANK() 
+                            OVER (PARTITION BY c.channel_name ORDER BY v.video_name) AS row_num
+                           FROM video AS v JOIN playlist12 AS p ON v.playlist_id = p.playlist_id
+                          JOIN channel12 AS c ON p.channel_id = c.channel_id limit 30""")
+       df = pd.DataFrame(mycursor.fetchall(),columns=mycursor.column_names)
+       st.write(df)
+         
 
     elif selected_question  == "2. Which channels have the most number of videos, and how many videos do they have?":
        mycursor.execute(
           """SELECT c.channel_name, COUNT(v.video_id) AS video_count
-              FROM channel AS c
-              JOIN playlist AS p ON c.channel_id = p.channel_id
+              FROM channel12 AS c
+              JOIN playlist12 AS p ON c.channel_id = p.channel_id
               JOIN video AS v ON p.playlist_id = v.playlist_id
               GROUP BY c.channel_name
               ORDER BY video_count DESC
-              LIMIT 10; """
+              LIMIT 10 """
         )
        df = pd.DataFrame(mycursor.fetchall(),columns=mycursor.column_names)
        st.write(df)
@@ -402,21 +459,19 @@ if selected_question :
        st.plotly_chart(fig,use_container_width=True)
 
     elif selected_question  == "3. What are the top 10 most viewed videos and their respective channels?":
-        mycursor.execute("""SELECT v.video_name, v.view_count, c.channel_name
-                            FROM video AS v
-                            JOIN playlist AS p ON v.playlist_id = p.playlist_id
-                            JOIN channel AS c ON p.channel_id = c.channel_id
-                            ORDER BY v.view_count DESC
-                            LIMIT 10; """)
+        mycursor.execute("""select c.channel_name, d.view_count, d.video_name from channel12 c join (select com.video_name, com.view_count, com.channel_id from   
+                        (select distinct(v.video_id), v.view_count,v.video_name, p.channel_id from video v 
+                        join playlist12 p on v.playlist_id = p.playlist_id order by (view_count) desc LIMIT 10) as com ) as d 
+                        on d.channel_id = c.channel_id """)
         df = pd.DataFrame(mycursor.fetchall(),columns=mycursor.column_names)
         st.write(df)
         st.write("### :green[Top 10 most viewed videos :]")
         fig = px.bar(df,
-                     x=mycursor.column_names[2],
-                     y=mycursor.column_names[1],
+                    x=mycursor.column_names[2],
+                    y=mycursor.column_names[1],
                      orientation='h',
-                     color=mycursor.column_names[0]
-                    )
+                     color= mycursor.column_names[0]
+        )
         st.plotly_chart(fig,use_container_width=True)
         
     elif selected_question  == "4. How many comments were made on each video, and what are their corresponding video names?":
@@ -428,25 +483,17 @@ if selected_question :
         st.write(df)
           
     elif selected_question  == "5. Which videos have the highest number of likes, and what are their corresponding channel names?":
-        mycursor.execute("""SELECT v.video_name, COUNT(c.comment_id) AS comment_count
-                            FROM video AS v LEFT JOIN comment AS c ON v.video_id = c.video_id
-                            GROUP BY v.video_id, v.video_name ORDER BY comment_count DESC """)
+        mycursor.execute("""select c.channel_name, d.video_name,d.like_count from channel12 c join (select com.video_name, com.like_count,com.channel_id from   
+                            (select distinct(v.video_id), v.like_count,v.video_name, p.channel_id from video v 
+                            join playlist12 p on v.playlist_id = p.playlist_id ) as com ) as d on d.channel_id = c.channel_id ORDER BY d.like_count DESC Limit 10""")
+
         df = pd.DataFrame(mycursor.fetchall(),columns=mycursor.column_names)
         st.write(df)
-        st.write("### :green[Top 10 most liked videos :]")
-        fig = px.bar(df,
-                     x=mycursor.column_names[2],
-                     y=mycursor.column_names[1],
-                     orientation='h',
-                     color=mycursor.column_names[0]
-                    )
+        fig = px.pie(df, values=mycursor.column_names[2], names=mycursor.column_names[0], title='Top 10 Viewed Videos')
         st.plotly_chart(fig,use_container_width=True)
         
     elif selected_question  == "6. What is the total number of likes and dislikes for each video, and what are their corresponding video names?":
-        mycursor.execute("""SELECT v.video_name, v.like_count, c.channel_name
-                            FROM video AS v JOIN channel12 AS c ON v.playlist_id = c.channel_id
-                            ORDER BY v.like_count DESC
-                            LIMIT 10 """)
+        mycursor.execute("""select a.video_name, a.like_count from (select distinct (video_id), video_name ,like_count from video) as a  order by a.like_count desc """)
         df = pd.DataFrame(mycursor.fetchall(),columns=mycursor.column_names)
         st.write(df)
          
@@ -463,10 +510,11 @@ if selected_question :
                     )
         st.plotly_chart(fig,use_container_width=True)
         
-    elif selected_question  == "8. What are the names of all the channels that have published videos in the year 2022?":
-        mycursor.execute("""SELECT DISTINCT c.channel_name
-                            FROM channel12 AS c JOIN video AS v ON c.channel_id = v.playlist_id
-                            WHERE YEAR(v.publish_date) = 2023
+    elif selected_question  == "8. What are the names of all the channels that have published videos in the year 2023?":
+        mycursor.execute("""
+                            select qw.channel_name from channel12 as qw join (select distinct(pq.channel_id) from playlist12 as pq join 
+                            (select v.video_id, v.playlist_id from video as v join playlist12 as p on v.playlist_id = p.playlist_id and year(publish_date) = 2023 limit 30) as ab on 
+                            ab.playlist_id = pq.playlist_id) as fin on qw.channel_id = fin.channel_id 
                          """)
         df = pd.DataFrame(mycursor.fetchall(),columns=mycursor.column_names)
         st.write(df)
